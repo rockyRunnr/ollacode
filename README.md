@@ -51,7 +51,7 @@ A local AI coding assistant powered by `qwen3-coder:30b` via Ollama. Chat with y
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/ollacode.git
+git clone https://github.com/rockyRunner-ai/ollacode.git
 cd ollacode
 
 # Create virtual environment and install
