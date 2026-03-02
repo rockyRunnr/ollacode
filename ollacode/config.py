@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 class Config:
     """Application configuration."""
 
-    ollama_host: str = "http://localhost:11434"
-    ollama_model: str = "qwen3-coder:30b"
+    ollama_host: str = "http://localhost:8080"
+    ollama_model: str = ""
     telegram_bot_token: str = ""
     telegram_allowed_users: list[int] = field(default_factory=list)
     workspace_dir: Path = field(default_factory=lambda: Path.cwd())
@@ -47,8 +47,8 @@ class Config:
         compact = os.getenv("COMPACT_MODE", "true").lower() in ("true", "1", "yes")
 
         return cls(
-            ollama_host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
-            ollama_model=os.getenv("OLLAMA_MODEL", "qwen3-coder:30b"),
+            ollama_host=os.getenv("OLLAMA_HOST", "http://localhost:8080"),
+            ollama_model=os.getenv("OLLAMA_MODEL", ""),
             telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
             telegram_allowed_users=allowed_users,
             workspace_dir=workspace_path,

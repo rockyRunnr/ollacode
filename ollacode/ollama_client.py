@@ -1,4 +1,4 @@
-"""Ollama API 비동기 클라이언트."""
+"""llama-server (OpenAI-compatible) 비동기 클라이언트."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from .config import Config
 
 
 class OllamaClient:
-    """Ollama REST API 클라이언트."""
+    """llama-server REST API 클라이언트 (OpenAI-compatible)."""
 
     def __init__(self, config: Config) -> None:
         self.base_url = config.ollama_host
@@ -36,15 +36,15 @@ class OllamaClient:
             "model": self.model,
             "messages": messages,
             "stream": False,
-            "options": {
-                "temperature": temperature,
-            },
+            "temperature": temperature,
+            "repeat_penalty": 1.1,
+            "n_predict": 4096,
         }
 
-        resp = await self._client.post("/api/chat", json=payload)
+        resp = await self._client.post("/v1/chat/completions", json=payload)
         resp.raise_for_status()
         data = resp.json()
-        return data.get("message", {}).get("content", "")
+        return data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
     async def chat_stream(
         self,
@@ -57,32 +57,42 @@ class OllamaClient:
             "model": self.model,
             "messages": messages,
             "stream": True,
-            "options": {
-                "temperature": temperature,
-            },
+            "temperature": temperature,
+            "repeat_penalty": 1.1,
+            "n_predict": 4096,
         }
 
-        async with self._client.stream("POST", "/api/chat", json=payload) as resp:
+        async with self._client.stream("POST", "/v1/chat/completions", json=payload) as resp:
             resp.raise_for_status()
             async for line in resp.aiter_lines():
-                if not line.strip():
+                line = line.strip()
+                if not line:
                     continue
+
+                if line.startswith("data: "):
+                    line = line[6:]
+
+                if line == "[DONE]":
+                    break
+
                 try:
                     chunk = json.loads(line)
                 except json.JSONDecodeError:
                     continue
 
-                content = chunk.get("message", {}).get("content", "")
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                content = delta.get("content", "")
                 if content:
                     yield content
 
-                if chunk.get("done", False):
+                finish = chunk.get("choices", [{}])[0].get("finish_reason")
+                if finish == "stop":
                     break
 
     async def check_health(self) -> bool:
-        """Ollama 서버 상태를 확인합니다."""
+        """서버 상태를 확인합니다."""
         try:
-            resp = await self._client.get("/")
+            resp = await self._client.get("/health")
             return resp.status_code == 200
         except httpx.RequestError:
             return False
